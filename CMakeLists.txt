@@ -74,3 +74,11 @@ target_link_libraries(question_paper_system PRIVATE Qt6::Widgets Qt6::Core Qt6::
 set_target_properties(question_paper_system PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
+
+enable_testing()
+
+add_executable(layout_test tests/TestLayout.cpp src/models/PaperModel.cpp)
+target_include_directories(layout_test PRIVATE src)
+target_link_libraries(layout_test PRIVATE Qt6::Widgets Qt6::Core Qt6::Gui Qt6::PrintSupport)
+
+add_test(NAME LayoutTest COMMAND layout_test)

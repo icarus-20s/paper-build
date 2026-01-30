@@ -51,6 +51,7 @@ private slots:
   void onSaveAsPaper();
   void onShowSettings();
   void onShowAbout();
+  void setPaperOrientation(bool portrait);
   void setupEditorTab();
   void setupPreviewTab();
   void onTabChanged(int index);
@@ -69,6 +70,7 @@ private:
   bool m_contentModified;
   QString m_defaultFontFamily;
   int m_defaultFontSize;
+  bool m_portraitOrientation;
 
   void setupUi();
   void setupPages();

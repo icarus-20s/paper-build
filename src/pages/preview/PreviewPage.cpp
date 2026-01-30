@@ -435,7 +435,7 @@ bool PreviewPage::performExport(ExportFormat format, const QString& filePath)
         switch (format) {
             case FormatDocx: {
                 DocxExporter exporter;
-                success = exporter.exportToDocx(*m_model, filePath);
+                success = exporter.exportToDocx(*m_model, filePath, QString(), 12, true);
                 if (!success) {
                     errorMessage = tr("Failed to create DOCX file. Check file permissions.");
                 }
@@ -443,7 +443,7 @@ bool PreviewPage::performExport(ExportFormat format, const QString& filePath)
             }
             case FormatPdf: {
                 PdfExporter exporter;
-                success = exporter.exportToPdf(*m_model, filePath);
+                success = exporter.exportToPdf(*m_model, filePath, QString(), 12, true);
                 if (!success) {
                     errorMessage = tr("Failed to create PDF file. Check file permissions.");
                 }
@@ -454,7 +454,7 @@ bool PreviewPage::performExport(ExportFormat format, const QString& filePath)
                 if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
                     QTextStream out(&file);
                     out.setEncoding(QStringConverter::Utf8);
-                    out << m_model->toHtml();
+                    out << m_model->toHtml(QString(), 12, true);
                     file.close();
                     success = true;
                 } else {

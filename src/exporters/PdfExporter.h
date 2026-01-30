@@ -10,5 +10,5 @@ class PdfExporter
 {
 public:
     PdfExporter() = default;
-    bool exportToPdf(const PaperModel &model, const QString &filePath, const QString &fontFamily = "Times New Roman", int fontSize = 12);
+    bool exportToPdf(const PaperModel &model, const QString &filePath, const QString &fontFamily = "Times New Roman", int fontSize = 12, bool portrait = true);
 };

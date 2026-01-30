@@ -5,6 +5,7 @@
 #include "../models/PaperModel.h"
 #include "../pages/question_editor/QuestionEditorPage.h"
 #include "ui_MainWindow.h"
+#include <QActionGroup>
 #include <QApplication>
 #include <QCloseEvent>
 #include <QComboBox>
@@ -59,7 +60,7 @@ MainWindow::MainWindow(QWidget *parent)
       m_paperModel(nullptr), m_sectionsLayout(nullptr),
       m_previewBrowser(nullptr), m_themeCombo(nullptr),
       m_contentModified(false), m_defaultFontFamily(DEFAULT_FONT_FAMILY),
-      m_defaultFontSize(DEFAULT_FONT_SIZE) {
+      m_defaultFontSize(DEFAULT_FONT_SIZE), m_portraitOrientation(true) {
   ui->setupUi(this);
 
   // Create paper model
@@ -210,6 +211,23 @@ void MainWindow::setupMenuBar() {
       QIcon::fromTheme("preferences-system"), tr("&Preferences..."));
   connect(preferencesAction, &QAction::triggered, this,
           &MainWindow::onShowSettings);
+
+  // Paper orientation submenu
+  QMenu *orientationMenu = settingsMenu->addMenu(tr("Paper &Orientation"));
+  QAction *portraitAction = orientationMenu->addAction(tr("&Portrait"));
+  portraitAction->setCheckable(true);
+  portraitAction->setChecked(true); // Default
+  connect(portraitAction, &QAction::triggered, this,
+          [this]() { setPaperOrientation(true); });
+
+  QAction *landscapeAction = orientationMenu->addAction(tr("&Landscape"));
+  landscapeAction->setCheckable(true);
+  connect(landscapeAction, &QAction::triggered, this,
+          [this]() { setPaperOrientation(false); });
+
+  QActionGroup *orientationGroup = new QActionGroup(this);
+  orientationGroup->addAction(portraitAction);
+  orientationGroup->addAction(landscapeAction);
 
   // Help menu
   QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
@@ -607,6 +625,7 @@ void MainWindow::loadSettings() {
   m_defaultFontFamily =
       settings.value("fontFamily", DEFAULT_FONT_FAMILY).toString();
   m_defaultFontSize = settings.value("fontSize", DEFAULT_FONT_SIZE).toInt();
+  m_portraitOrientation = settings.value("paperOrientation", "portrait").toString() == "portrait";
 }
 
 void MainWindow::saveSettings() {
@@ -616,6 +635,7 @@ void MainWindow::saveSettings() {
   settings.setValue("theme", m_themeCombo->currentText());
   settings.setValue("fontFamily", m_defaultFontFamily);
   settings.setValue("fontSize", m_defaultFontSize);
+  settings.setValue("paperOrientation", m_portraitOrientation ? "portrait" : "landscape");
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
@@ -635,7 +655,7 @@ void MainWindow::updatePreview() {
   if (m_previewBrowser) {
     updatePaperModel();
     m_previewBrowser->setHtml(
-        m_paperModel->toHtml(m_defaultFontFamily, m_defaultFontSize));
+        m_paperModel->toHtml(m_defaultFontFamily, m_defaultFontSize, m_portraitOrientation));
   }
 }
 
@@ -645,7 +665,7 @@ void MainWindow::onExportDocx() {
   if (!filePath.isEmpty()) {
     updatePaperModel();
     DocxExporter exporter;
-    if (exporter.exportToDocx(*m_paperModel, filePath))
+    if (exporter.exportToDocx(*m_paperModel, filePath, m_defaultFontFamily, m_defaultFontSize, m_portraitOrientation))
       QMessageBox::information(this, tr("Success"), tr("DOCX exported."));
     else
       QMessageBox::warning(this, tr("Error"), tr("Export failed."));
@@ -658,7 +678,7 @@ void MainWindow::onExportPdf() {
   if (!filePath.isEmpty()) {
     updatePaperModel();
     PdfExporter exporter;
-    if (exporter.exportToPdf(*m_paperModel, filePath))
+    if (exporter.exportToPdf(*m_paperModel, filePath, m_defaultFontFamily, m_defaultFontSize, m_portraitOrientation))
       QMessageBox::information(this, tr("Success"), tr("PDF exported."));
     else
       QMessageBox::warning(this, tr("Error"), tr("Export failed."));
@@ -674,7 +694,7 @@ void MainWindow::onExportHtml() {
     if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
       QTextStream out(&file);
       out.setEncoding(QStringConverter::Utf8);
-      out << m_paperModel->toHtml(m_defaultFontFamily, m_defaultFontSize);
+      out << m_paperModel->toHtml(m_defaultFontFamily, m_defaultFontSize, m_portraitOrientation);
       file.close();
       QMessageBox::information(this, tr("Success"), tr("HTML exported."));
     } else {
@@ -682,4 +702,17 @@ void MainWindow::onExportHtml() {
                            tr("Failed to export HTML."));
     }
   }
+}
+
+void MainWindow::setPaperOrientation(bool portrait) {
+  m_portraitOrientation = portrait;
+  
+  // Update preview with new orientation
+  updatePreview();
+  
+  // Save setting
+  QSettings settings(ORGANIZATION_NAME, APP_NAME);
+  settings.setValue("paperOrientation", portrait ? "portrait" : "landscape");
+  
+  updateStatus(portrait ? tr("Switched to portrait mode") : tr("Switched to landscape mode"));
 }

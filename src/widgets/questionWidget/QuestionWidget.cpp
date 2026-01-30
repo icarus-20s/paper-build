@@ -5,6 +5,7 @@
 #include <QFileInfo>
 #include <QFontComboBox>
 #include <QHBoxLayout>
+#include <QInputDialog>
 #include <QMessageBox>
 #include <QTextCharFormat>
 #include <QTextCursor>
@@ -62,6 +63,8 @@ void QuestionWidget::setupUi() {
   ui->removeQuestionButton->setToolTip(tr("Remove this question"));
   ui->addImageButton->setIcon(QIcon::fromTheme("insert-image"));
   ui->addTableButton->setIcon(QIcon::fromTheme("insert-table"));
+  ui->addRowButton->setVisible(false);
+  ui->addColumnButton->setVisible(false);
   ui->clearButton->setIcon(QIcon::fromTheme("edit-clear-all"));
 
   // Initial state
@@ -74,6 +77,10 @@ void QuestionWidget::setupConnections() {
           &QuestionWidget::onAddImage);
   connect(ui->addTableButton, &QPushButton::clicked, this,
           &QuestionWidget::onAddTable);
+  connect(ui->addRowButton, &QPushButton::clicked, this,
+          &QuestionWidget::onAddRow);
+  connect(ui->addColumnButton, &QPushButton::clicked, this,
+          &QuestionWidget::onAddColumn);
   connect(ui->clearButton, &QPushButton::clicked, this,
           &QuestionWidget::clearContent);
   connect(ui->removeQuestionButton, &QPushButton::clicked, this,
@@ -98,6 +105,8 @@ void QuestionWidget::setupConnections() {
   // Text change notification
   connect(ui->textEdit, &QTextEdit::textChanged, this,
           &QuestionWidget::onTextChanged);
+  connect(ui->orTextEdit, &QTextEdit::textChanged, this,
+          &QuestionWidget::onTextChanged);
 
   // Cursor position change for formatting updates
   connect(ui->textEdit, &QTextEdit::cursorPositionChanged, this,
@@ -111,6 +120,8 @@ void QuestionWidget::onTypeChanged(int index) {
   // Show/hide relevant stack page
   if (type == QuestionType::Mcq || type == QuestionType::Mixed) {
     ui->typeSpecificStack->setCurrentWidget(ui->mcqPage);
+  } else if (type == QuestionType::Or) {
+    ui->typeSpecificStack->setCurrentWidget(ui->orPage);
   } else {
     ui->typeSpecificStack->setCurrentWidget(ui->regularPage);
   }
@@ -205,7 +216,7 @@ void QuestionWidget::setupFormattingToolbar() {
   toolbarLayout->addStretch();
 
   // Insert toolbar at the top of the layout
-  ui->verticalLayout->insertWidget(0, m_formattingToolbar);
+  ui->leftLayout->insertWidget(0, m_formattingToolbar);
 }
 
 void QuestionWidget::updateFormattingButtons() {
@@ -257,6 +268,17 @@ Question QuestionWidget::toQuestion() const {
     question.options << ui->optionBEdit->text().trimmed();
     question.options << ui->optionCEdit->text().trimmed();
     question.options << ui->optionDEdit->text().trimmed();
+  } else if (question.type == QuestionType::Or) {
+    // Export alternative question
+    QString orText = ui->orTextEdit->toPlainText().trimmed();
+    if (!orText.isEmpty()) {
+      Question altQuestion;
+      altQuestion.text = orText;
+      // Sub-question type doesn't arguably matter much for basic rendering,
+      // but we can set it to Regular.
+      altQuestion.type = QuestionType::Regular;
+      question.subQuestions.append(altQuestion);
+    }
   }
 
   return question;
@@ -299,7 +321,13 @@ void QuestionWidget::fromQuestion(const Question &question) {
     ui->optionAEdit->setText(question.options[0]);
     ui->optionBEdit->setText(question.options[1]);
     ui->optionCEdit->setText(question.options[2]);
+    ui->optionCEdit->setText(question.options[2]);
     ui->optionDEdit->setText(question.options[3]);
+  }
+
+  // Load OR alternative
+  if (question.type == QuestionType::Or && !question.subQuestions.isEmpty()) {
+    ui->orTextEdit->setText(question.subQuestions.first().text);
   }
 }
 
@@ -372,15 +400,66 @@ void QuestionWidget::onRemoveImage() {
 }
 
 void QuestionWidget::onAddTable() {
+  bool ok;
+  // Prompt for Rows
+  int rows = QInputDialog::getInt(this, tr("Add Table"), tr("Rows:"), 2, 1, 20,
+                                  1, &ok);
+  if (!ok) {
+    return;
+  }
+
+  // Prompt for Columns
+  int cols = QInputDialog::getInt(this, tr("Add Table"), tr("Columns:"), 2, 1,
+                                  10, 1, &ok);
+  if (!ok) {
+    return;
+  }
+
+  // If table already exists, confirm replacement or new setup (since model only
+  // supports one table per question for now)
+  if (ui->tableWidget->rowCount() > 0) {
+    QMessageBox::StandardButton reply = QMessageBox::question(
+        this, tr("Replace Table"),
+        tr("A table already exists. Do you want to replace it with a new one?"),
+        QMessageBox::Yes | QMessageBox::No);
+
+    if (reply != QMessageBox::Yes) {
+      return;
+    }
+  }
+
+  ui->tableWidget->setRowCount(rows);
+  ui->tableWidget->setColumnCount(cols);
+  ui->tableWidget->setVisible(true);
+
+  emit contentChanged();
+}
+
+void QuestionWidget::onAddRow() {
   if (ui->tableWidget->rowCount() == 0) {
-    // Create new table
-    ui->tableWidget->setRowCount(DEFAULT_TABLE_ROWS);
+    // Create new table if none exists
+    ui->tableWidget->setRowCount(1);
     ui->tableWidget->setColumnCount(DEFAULT_TABLE_COLS);
     ui->tableWidget->setVisible(true);
   } else {
     // Add a new row to existing table
     int newRow = ui->tableWidget->rowCount();
     ui->tableWidget->insertRow(newRow);
+  }
+
+  emit contentChanged();
+}
+
+void QuestionWidget::onAddColumn() {
+  if (ui->tableWidget->columnCount() == 0) {
+    // Create new table if none exists
+    ui->tableWidget->setRowCount(DEFAULT_TABLE_ROWS);
+    ui->tableWidget->setColumnCount(1);
+    ui->tableWidget->setVisible(true);
+  } else {
+    // Add a new column to existing table
+    int newColumn = ui->tableWidget->columnCount();
+    ui->tableWidget->insertColumn(newColumn);
   }
 
   emit contentChanged();
@@ -413,7 +492,11 @@ void QuestionWidget::clearContent() {
   ui->optionAEdit->clear();
   ui->optionBEdit->clear();
   ui->optionCEdit->clear();
+  ui->optionCEdit->clear();
   ui->optionDEdit->clear();
+
+  // Clear OR text
+  ui->orTextEdit->clear();
 
   emit contentChanged();
 }
@@ -483,6 +566,9 @@ void QuestionWidget::updateViewState() {
   }
   ui->addImageButton->setVisible(isEditing);
   ui->addTableButton->setVisible(isEditing);
+  ui->addRowButton->setVisible(isEditing && ui->tableWidget->rowCount() > 0);
+  ui->addColumnButton->setVisible(isEditing &&
+                                  ui->tableWidget->columnCount() > 0);
   ui->imagePathLabel->setVisible(isEditing);
   ui->clearButton->setVisible(isEditing);
 

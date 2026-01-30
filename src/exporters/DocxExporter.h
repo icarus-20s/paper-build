@@ -10,5 +10,5 @@ class DocxExporter
 {
 public:
     DocxExporter() = default;
-    bool exportToDocx(const PaperModel &model, const QString &filePath, const QString &fontFamily = "Times New Roman", int fontSize = 12);
+    bool exportToDocx(const PaperModel &model, const QString &filePath, const QString &fontFamily = "Times New Roman", int fontSize = 12, bool portrait = true);
 };

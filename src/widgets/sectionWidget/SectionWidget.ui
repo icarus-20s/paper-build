@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>600</width>
-    <height>400</height>
+    <width>800</width>
+    <height>200</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -46,7 +46,7 @@
    <item>
     <layout class="QVBoxLayout" name="questionsLayout">
      <property name="spacing">
-      <number>10</number>
+      <number>5</number>
      </property>
     </layout>
    </item>

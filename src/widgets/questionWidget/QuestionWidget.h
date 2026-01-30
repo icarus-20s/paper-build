@@ -135,6 +135,18 @@ private slots:
   void onAddTable();
 
   /**
+   * @brief Handles the "Add Row" button click.
+   * Adds a new row to the table.
+   */
+  void onAddRow();
+
+  /**
+   * @brief Handles the "Add Column" button click.
+   * Adds a new column to the table.
+   */
+  void onAddColumn();
+
+  /**
    * @brief Handles image removal.
    */
   void onRemoveImage();

@@ -21,11 +21,26 @@ const QString HTML_HEADER_TEMPLATE = "<html>"
                                      "<head>"
                                      "<meta charset=\"utf-8\">"
                                      "<style>"
+                                     "@page { "
+                                     "size: A4 %1; "
+                                     "margin: 15mm; "
+                                     "}"
+                                     "@media print { "
                                      "body { "
-                                     "font-family:'%1', serif; "
-                                     "font-size:%2pt; "
-                                     "margin:%3px; "
-                                     "line-height:1.6; "
+                                     "font-family:'%2', serif; "
+                                     "font-size:%3pt; "
+                                     "margin:0; "
+                                     "line-height:1.4; "
+                                     "max-width:100%; "
+                                     "}"
+                                     "}"
+                                     "body { "
+                                     "font-family:'%2', serif; "
+                                     "font-size:%3pt; "
+                                     "margin:10px; "
+                                     "line-height:1.4; "
+                                     "max-width:100%; "
+                                     "box-sizing:border-box; "
                                      "}"
                                      "p { "
                                      "margin:0; "
@@ -33,33 +48,35 @@ const QString HTML_HEADER_TEMPLATE = "<html>"
                                      "}"
                                      "h1 { "
                                      "text-align:center; "
-                                     "margin-bottom:10px; "
-                                     "font-size:1.5em; "
+                                     "margin-bottom:6px; "
+                                     "font-size:1.3em; "
+                                     "font-weight:bold; "
                                      "}"
                                      "h2 { "
                                      "text-align:center; "
-                                     "margin-top:20px; "
-                                     "margin-bottom:5px; "
-                                     "font-size:1.2em; "
+                                     "margin-top:12px; "
+                                     "margin-bottom:3px; "
+                                     "font-size:1.0em; "
+                                     "font-weight:bold; "
                                      "}"
                                      ".metadata { "
                                      "text-align:center; "
-                                     "margin-bottom:20px; "
-                                     "font-size:0.9em; "
+                                     "margin-bottom:12px; "
+                                     "font-size:0.8em; "
                                      "}"
                                      ".section { "
-                                     "margin-top:20px; "
+                                     "margin-top:12px; "
                                      "page-break-inside:avoid; "
                                      "}"
                                      ".subtitle { "
                                      "text-align:center; "
                                      "font-weight:bold; "
-                                     "font-size:0.95em; "
-                                     "margin-bottom:10px; "
+                                     "font-size:0.85em; "
+                                     "margin-bottom:6px; "
                                      "font-style:italic; "
                                      "}"
                                      ".question { "
-                                     "margin:5px 0; "
+                                     "margin:2px 0; "
                                      "text-align:left; "
                                      "}"
                                      ".question-layout { "
@@ -77,62 +94,76 @@ const QString HTML_HEADER_TEMPLATE = "<html>"
                                      "}"
                                      ".or-question { "
                                      "margin-left:%5px; "
-                                     "margin-top:5px; "
+                                     "margin-top:2px; "
                                      "}"
-                                     ".mcq-table { "
-                                     "width:100%; "
-                                     "border-collapse:collapse; "
-                                     "margin-top:5px; "
-                                     "margin-left:30px; "
-                                     "}"
-                                     ".mcq-table td { "
-                                     "border:none; "
-                                     "padding:2px 5px; "
-                                     "width:50%; "
+                                     ".mcq-options { "
+                                     "margin-left:15px; "
+                                     "margin-top:1px; "
+                                     "line-height:1.2; "
                                      "}"
                                      "table { "
                                      "border-collapse:collapse; "
-                                     "margin:5px 0; "
-                                     "width:auto; "
+                                     "width:100%; "
+                                     "margin:3px 0; "
+                                     "font-size:0.85em; "
                                      "}"
                                      "td, th { "
                                      "border:1px solid #000; "
-                                     "padding:4px 6px; "
+                                     "padding:2px 4px; "
                                      "text-align:left; "
                                      "}"
                                      "th { "
-                                     "background-color:#f0f0f0; "
+                                     "background-color:#f5f5f5; "
                                      "font-weight:bold; "
                                      "}"
                                      "img { "
                                      "max-width:100%; "
                                      "height:auto; "
-                                     "margin:5px 0; "
+                                     "margin:2px 0; "
                                      "display:block; "
+                                     "}"
+                                     ".mcq-table { "
+                                     "width: 95%; "
+                                     "border: none; "
+                                     "margin-left: 15px; "
+                                     "margin-top: 5px; "
+                                     "}"
+                                     ".mcq-table td { "
+                                     "border: none; "
+                                     "padding: 2px 10px; "
+                                     "vertical-align: top; "
+                                     "}"
+                                     ".data-table { "
+                                     "float: right; "
+                                     "width: auto; "
+                                     "margin: 0 0 5px 15px; "
+                                     "border: 1px solid #000; "
+                                     "}"
+                                     ".data-table td, .data-table th { "
+                                     "border: 1px solid #000; "
+                                     "}"
+                                     ".question-image { "
+                                     "margin: 5px; "
                                      "}"
                                      "</style>"
                                      "</head>"
                                      "<body>";
 } // namespace
 
-QString PaperModel::toHtml(const QString &fontFamily, int fontSize) const {
+QString PaperModel::toHtml(const QString &fontFamily, int fontSize,
+                           bool portrait) const {
   // Build HTML using QString builder for better performance
   QString html;
   html.reserve(4096); // Reserve initial capacity to reduce reallocations
 
   // HTML header with CSS
-  QString pageStyle = exam.isLandscape ? "size: A4 landscape; margin: 10mm;"
-                                       : "size: A4 portrait; margin: 10mm;";
-
+  QString orientation = portrait ? "portrait" : "landscape";
   html = QString(HTML_HEADER_TEMPLATE)
+             .arg(orientation)
              .arg(fontFamily)
              .arg(fontSize)
-             .arg(DEFAULT_MARGIN)
              .arg(QUESTION_NUMBER_WIDTH)
              .arg(OR_INDENT);
-
-  // Inject page style
-  html.replace("</style>", "@page { " + pageStyle + " } </style>");
 
   // Exam title
   if (!exam.title.isEmpty()) {
@@ -161,6 +192,10 @@ QString PaperModel::toHtml(const QString &fontFamily, int fontSize) const {
 
   html += metadataParts.join(" | ");
   html += "</div>";
+
+  // Separator line
+  html += "<hr style=\"border: 0; border-top: 2px solid #000; margin: 10px 0 "
+          "20px 0;\" />";
 
   // Render each section
   for (const Section &section : sections) {
@@ -200,42 +235,57 @@ QString PaperModel::renderQuestion(const Question &question,
                                    int questionNumber) const {
   QString questionHtml = "<div class=\"question\">";
 
-  // Use a tiny layout table to keep number and text in same line
+  // Prepare floated content (Image + Data Table)
+  QString floatedContent;
+
+  // Embed diagram if present (floated right)
+  if (!question.diagramPath.isEmpty()) {
+    floatedContent += "<br/><img src=\"file://" % question.diagramPath %
+                      "\" width=\"150\" align=\"right\" "
+                      "class=\"question-image\" "
+                      "alt=\"Question diagram\" />";
+  }
+
+  // Render table if present (floated right)
+  if (!question.table.isEmpty()) {
+    floatedContent += renderTable(question.table);
+  }
+
+  // Question Layout Table (Number | Text + Floats)
   questionHtml += "<table class=\"question-layout\"><tr>"
                   "<td class=\"question-num-cell\">" %
                   QString::number(questionNumber) %
                   ")</td>"
                   "<td class=\"question-text-cell\">" %
-                  question.text % "</td></tr></table>";
+                  question.text % floatedContent % "</td></tr></table>";
 
   // Handle OR-type questions
+  // Handle OR-type questions
   if (question.type == QuestionType::Or && !question.subQuestions.isEmpty()) {
-    questionHtml += " <i>(Answer any one)</i><br/>";
+    questionHtml += "<div style=\"text-align:center; font-weight:bold; margin: "
+                    "5px 0;\">OR</div>";
 
-    int subQuestionNumber = 1;
     for (const Question &subQuestion : question.subQuestions) {
-      questionHtml += "<div class=\"or-question\">"
-                      "<b>(" %
-                      QString::number(subQuestionNumber) % ")</b> " %
+      questionHtml += "<div class=\"or-question\">" %
                       subQuestion.text.toHtmlEscaped() % "</div>";
-      ++subQuestionNumber;
     }
   }
   // Handle MCQ-type questions
   else if (question.type == QuestionType::Mcq && !question.options.isEmpty()) {
+    questionHtml += "<div style=\"clear:both;\"></div>";
     questionHtml += "<table class=\"mcq-table\">";
     for (int i = 0; i < question.options.size(); i += 2) {
       questionHtml += "<tr>";
 
       // First column (a, c, ...)
       const QChar label1 = QChar('a' + i);
-      questionHtml += "<td>(" % label1 % ") " %
+      questionHtml += "<td width=\"50%\">(" % label1 % ") " %
                       question.options[i].toHtmlEscaped() % "</td>";
 
       // Second column (b, d, ...)
       if (i + 1 < question.options.size()) {
         const QChar label2 = QChar('a' + i + 1);
-        questionHtml += "<td>(" % label2 % ") " %
+        questionHtml += "<td width=\"50%\">(" % label2 % ") " %
                         question.options[i + 1].toHtmlEscaped() % "</td>";
       } else {
         questionHtml += "<td></td>";
@@ -245,9 +295,10 @@ QString PaperModel::renderQuestion(const Question &question,
     }
     questionHtml += "</table>";
   }
-  // Handle Mixed-type questions (render as MCQ if options present)
+  // Handle Mixed-type questions
   else if (question.type == QuestionType::Mixed &&
            !question.options.isEmpty()) {
+    questionHtml += "<div style=\"clear:both;\"></div>";
     questionHtml += "<div class=\"mcq-options\">";
     for (int i = 0; i < question.options.size(); ++i) {
       const QChar optionLabel = QChar('a' + i);
@@ -255,18 +306,6 @@ QString PaperModel::renderQuestion(const Question &question,
                       question.options[i].toHtmlEscaped() % "<br/>";
     }
     questionHtml += "</div>";
-  }
-
-  // Embed diagram if present
-  if (!question.diagramPath.isEmpty()) {
-    questionHtml += "<img src=\"file://" % question.diagramPath %
-                    "\" "
-                    "alt=\"Question diagram\" />";
-  }
-
-  // Render table if present
-  if (!question.table.isEmpty()) {
-    questionHtml += renderTable(question.table);
   }
 
   questionHtml += "</div>";
@@ -278,7 +317,7 @@ QString PaperModel::renderTable(const QVector<QVector<QString>> &table) const {
     return QString();
   }
 
-  QString tableHtml = "<table>";
+  QString tableHtml = "<table class=\"data-table\">";
 
   for (int row = 0; row < table.size(); ++row) {
     tableHtml += "<tr>";

@@ -42,8 +42,8 @@ void SectionWidget::setupUi() {
   ui->subtitleEdit->setMaxLength(200);
 
   // Configure questions container
-  ui->questionsLayout->setSpacing(10);
-  ui->questionsLayout->setContentsMargins(0, 10, 0, 10);
+  ui->questionsLayout->setSpacing(2);
+  ui->questionsLayout->setContentsMargins(0, 2, 0, 2);
 
   // Style the add question button
   ui->addQuestionButton->setIcon(QIcon::fromTheme("list-add"));

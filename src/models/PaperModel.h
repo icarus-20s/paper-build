@@ -68,7 +68,7 @@ public:
      * @note The HTML uses UTF-8 encoding and includes responsive image sizing.
      * @note Diagram paths are embedded as file:// URLs.
      */
-    QString toHtml(const QString& fontFamily = "Times New Roman", int fontSize = 12) const;
+    QString toHtml(const QString& fontFamily = "Times New Roman", int fontSize = 12, bool portrait = true) const;
 
     /**
      * @brief Validates the exam paper structure.

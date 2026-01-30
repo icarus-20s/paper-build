@@ -6,67 +6,275 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>600</width>
-    <height>500</height>
+    <width>800</width>
+    <height>300</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Question Editor</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
+  <layout class="QHBoxLayout" name="horizontalLayout">
    <property name="spacing">
-    <number>8</number>
+    <number>10</number>
    </property>
    <property name="leftMargin">
-    <number>15</number>
+    <number>5</number>
    </property>
    <property name="topMargin">
-    <number>15</number>
+    <number>5</number>
    </property>
    <property name="rightMargin">
-    <number>15</number>
+    <number>5</number>
    </property>
    <property name="bottomMargin">
-    <number>15</number>
+    <number>5</number>
    </property>
    <item>
-    <layout class="QHBoxLayout" name="headerLayout">
+    <layout class="QVBoxLayout" name="leftLayout">
+     <property name="spacing">
+      <number>5</number>
+     </property>
      <item>
-      <widget class="QLabel" name="typeLabel">
-       <property name="text">
-        <string>Type:</string>
-       </property>
-      </widget>
+      <layout class="QHBoxLayout" name="headerLayout">
+       <item>
+        <widget class="QLabel" name="typeLabel">
+         <property name="text">
+          <string>Type:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QComboBox" name="typeComboBox">
+         <property name="minimumSize">
+          <size>
+           <width>120</width>
+           <height>0</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QPushButton" name="removeQuestionButton">
+         <property name="text">
+          <string/>
+         </property>
+         <property name="flat">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </item>
      <item>
-      <widget class="QComboBox" name="typeComboBox">
+      <widget class="QTextEdit" name="textEdit">
        <property name="minimumSize">
         <size>
-         <width>120</width>
-         <height>0</height>
+         <width>0</width>
+         <height>80</height>
         </size>
+       </property>
+       <property name="placeholderText">
+        <string>Enter question text here...</string>
        </property>
       </widget>
      </item>
      <item>
-      <spacer name="horizontalSpacer">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>20</height>
-        </size>
-       </property>
-      </spacer>
+      <widget class="QStackedWidget" name="typeSpecificStack">
+       <widget class="QWidget" name="regularPage"/>
+       <widget class="QWidget" name="mcqPage">
+        <layout class="QGridLayout" name="mcqGridLayout">
+         <property name="spacing">
+          <number>5</number>
+         </property>
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>5</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>5</number>
+         </property>
+         <item row="0" column="0">
+          <widget class="QLabel" name="labelA">
+           <property name="text">
+            <string>(a)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLineEdit" name="optionAEdit"/>
+         </item>
+         <item row="0" column="2">
+          <widget class="QLabel" name="labelB">
+           <property name="text">
+            <string>(b)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="3">
+          <widget class="QLineEdit" name="optionBEdit"/>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="labelC">
+           <property name="text">
+            <string>(c)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLineEdit" name="optionCEdit"/>
+         </item>
+         <item row="1" column="2">
+          <widget class="QLabel" name="labelD">
+           <property name="text">
+            <string>(d)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="3">
+          <widget class="QLineEdit" name="optionDEdit"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="orPage">
+        <layout class="QVBoxLayout" name="orLayout">
+         <property name="leftMargin">
+           <number>0</number>
+         </property>
+         <property name="rightMargin">
+           <number>0</number>
+         </property>
+         <property name="topMargin">
+           <number>5</number>
+         </property>
+         <property name="bottomMargin">
+           <number>5</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="orLabel">
+           <property name="text">
+            <string>Alternative Question (OR):</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTextEdit" name="orTextEdit">
+           <property name="placeholderText">
+            <string>Enter alternative question text...</string>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>60</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="removeQuestionButton">
+      <layout class="QHBoxLayout" name="controlsLayout">
+       <item>
+        <widget class="QPushButton" name="addImageButton">
+         <property name="text">
+          <string>Add Image</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="addTableButton">
+         <property name="text">
+          <string>Add Table</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="addRowButton">
+         <property name="text">
+          <string>+Row</string>
+         </property>
+         <property name="toolTip">
+          <string>Add table row</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="addColumnButton">
+         <property name="text">
+          <string>+Col</string>
+         </property>
+         <property name="toolTip">
+          <string>Add table column</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="imagePathLabel">
+         <property name="text">
+          <string>No image selected</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QPushButton" name="doneButton">
+         <property name="text">
+          <string>Done</string>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color: #28a745;</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="clearButton">
+         <property name="text">
+          <string>Clear</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="QLabel" name="summaryLabel">
        <property name="text">
-        <string/>
+        <string>Question Summary</string>
        </property>
-       <property name="flat">
+       <property name="visible">
+        <bool>false</bool>
+       </property>
+       <property name="wordWrap">
         <bool>true</bool>
        </property>
       </widget>
@@ -74,175 +282,40 @@
     </layout>
    </item>
    <item>
-    <widget class="QTextEdit" name="textEdit">
-     <property name="minimumSize">
-      <size>
-       <width>0</width>
-       <height>100</height>
-      </size>
+    <layout class="QVBoxLayout" name="rightLayout">
+     <property name="spacing">
+      <number>5</number>
      </property>
-     <property name="placeholderText">
-      <string>Enter question text here...</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QStackedWidget" name="typeSpecificStack">
-     <widget class="QWidget" name="regularPage"/>
-     <widget class="QWidget" name="mcqPage">
-      <layout class="QVBoxLayout" name="mcqLayout">
-       <property name="spacing">
-        <number>5</number>
-       </property>
-       <property name="leftMargin">
-        <number>0</number>
-       </property>
-       <property name="topMargin">
-        <number>5</number>
-       </property>
-       <property name="rightMargin">
-        <number>0</number>
-       </property>
-       <property name="bottomMargin">
-        <number>5</number>
-       </property>
-       <item>
-        <layout class="QHBoxLayout" name="optionALayout">
-         <item>
-          <widget class="QLabel" name="labelA">
-           <property name="text">
-            <string>(a)</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLineEdit" name="optionAEdit"/>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <layout class="QHBoxLayout" name="optionBLayout">
-         <item>
-          <widget class="QLabel" name="labelB">
-           <property name="text">
-            <string>(b)</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLineEdit" name="optionBEdit"/>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <layout class="QHBoxLayout" name="optionCLayout">
-         <item>
-          <widget class="QLabel" name="labelC">
-           <property name="text">
-            <string>(c)</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLineEdit" name="optionCEdit"/>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <layout class="QHBoxLayout" name="optionDLayout">
-         <item>
-          <widget class="QLabel" name="labelD">
-           <property name="text">
-            <string>(d)</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLineEdit" name="optionDEdit"/>
-         </item>
-        </layout>
-       </item>
-      </layout>
-     </widget>
-    </widget>
-   </item>
-   <item>
-    <widget class="QTableWidget" name="tableWidget">
-     <property name="minimumSize">
-      <size>
-       <width>0</width>
-       <height>120</height>
-      </size>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <layout class="QHBoxLayout" name="controlsLayout">
      <item>
-      <widget class="QPushButton" name="addImageButton">
-       <property name="text">
-        <string>Add Image</string>
+      <widget class="QTableWidget" name="tableWidget">
+       <property name="minimumSize">
+        <size>
+         <width>200</width>
+         <height>120</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>400</width>
+         <height>16777215</height>
+        </size>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="addTableButton">
-       <property name="text">
-        <string>Add Table</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLabel" name="imagePathLabel">
-       <property name="text">
-        <string>No image selected</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <spacer name="horizontalSpacer_2">
+      <spacer name="verticalSpacer">
        <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+        <enum>Qt::Vertical</enum>
        </property>
        <property name="sizeHint" stdset="0">
         <size>
-         <width>40</width>
-         <height>20</height>
+         <width>20</width>
+         <height>40</height>
         </size>
        </property>
       </spacer>
      </item>
-     <item>
-      <widget class="QPushButton" name="doneButton">
-       <property name="text">
-        <string>Done</string>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">background-color: #28a745;</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="clearButton">
-       <property name="text">
-        <string>Clear</string>
-       </property>
-      </widget>
-     </item>
     </layout>
-   </item>
-   <item>
-    <widget class="QLabel" name="summaryLabel">
-     <property name="text">
-      <string>Question Summary</string>
-     </property>
-     <property name="visible">
-      <bool>false</bool>
-     </property>
-     <property name="wordWrap">
-      <bool>true</bool>
-     </property>
-    </widget>
    </item>
   </layout>
  </widget>
