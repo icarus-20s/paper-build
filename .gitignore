@@ -1,0 +1,87 @@
+# =========================
+# Build directories
+# =========================
+build/
+build-*/
+debug/
+release/
+out/
+bin/
+obj/
+
+# =========================
+# Qt Creator
+# =========================
+*.pro.user
+*.pro.user.*
+*.qbs.user
+*.qmlc
+*.qmlcache
+.qtcreator/
+
+# =========================
+# CMake
+# =========================
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+compile_commands.json
+
+# =========================
+# Make / GCC
+# =========================
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.so.*
+*.dll
+*.exe
+*.out
+
+# =========================
+# Qt generated files
+# =========================
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+ui_*.h
+
+# =========================
+# IDE / Editor files
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+
+# =========================
+# OS-specific
+# =========================
+# Linux
+*~
+*.autosave
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# =========================
+# Logs & temp
+# =========================
+*.log
+*.tmp
+*.cache
+
+# =========================
+# PDF / Export outputs (optional)
+# =========================
+exports/
+*.pdf
+*.docx
