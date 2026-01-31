@@ -31,9 +31,9 @@ jobs:
       - name: Install Qt
         run: |
           if [ "${{ runner.os }}" == "Linux" ]; then
-            python -m aqt install-qt linux desktop 6.6.1 --outputdir $HOME/Qt --modules qtbase
+            python -m aqt install-qt linux desktop 6.5.3 --outputdir $HOME/Qt --modules qtbase qttools
           else
-            python -m aqt install-qt windows desktop 6.6.1 win64_msvc2019_64 --outputdir ${{ runner.temp }}/Qt --modules qtbase
+            python -m aqt install-qt windows desktop 6.5.3 win64_msvc2019_64 --outputdir ${{ runner.temp }}/Qt --modules qtbase qttools
           fi
 
       - name: Configure CMake
@@ -45,10 +45,9 @@ jobs:
       - name: Bundle Qt (Windows)
         if: runner.os == 'Windows'
         run: |
+          ${{ runner.temp }}/Qt/6.5.3/msvc2019_64/bin/windeployqt.exe build/Release/*.exe
           mkdir release
-          ${{ runner.temp }}/Qt/6.6.1/msvc2019_64/bin/windeployqt.exe build/Release/*.exe
-          copy build/Release/*.exe release/
-          xcopy build/Release/*.dll release/ /y
+          Compress-Archive -Path build/Release/* -DestinationPath release/app.zip
 
       - name: Bundle Qt (Linux)
         if: runner.os == 'Linux'
@@ -56,8 +55,11 @@ jobs:
           wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
           chmod a+x linuxdeployqt-continuous-x86_64.AppImage
           mkdir -p release
+          export QTDIR=$HOME/Qt/6.5.3/gcc_64
+          export PATH=$QTDIR/bin:$PATH
           ./linuxdeployqt-continuous-x86_64.AppImage build/bin/question_paper_system -appimage -no-translations
           mv *.AppImage release/question_paper_system.AppImage
+          cp build/bin/question_paper_system release/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
