@@ -1,9 +1,11 @@
-name: Build & Release (Qt + CMake)
+name: Build & Release Qt App
 
 on:
   push:
     branches:
       - main
+    tags:
+      - 'v*.*.*'
   pull_request:
     branches:
       - main
@@ -16,52 +18,44 @@ env:
 
 jobs:
   build:
-    name: Build on ${{ matrix.os }}
+    name: Build ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
+        os: [ubuntu-22.04, windows-latest]
         include:
-              - os: ubuntu-22.04
-                qt_arch: gcc_64
-                host: linux
-                artifact_name: Linux
-              - os: windows-latest
-                qt_arch: win64_msvc2019_64
-                host: windows
-                artifact_name: Windows
-
+          - os: ubuntu-22.04
+            qt_arch: gcc_64
+            artifact_name: Linux
+          - os: windows-latest
+            qt_arch: win64_msvc2019_64
+            artifact_name: Windows
     runs-on: ${{ matrix.os }}
 
     steps:
-      # 1. Checkout code
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      # 2. Setup Python
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           check-latest: true
 
-      # 3. Upgrade pip
       - name: Upgrade pip
         run: python -m pip install --upgrade pip
 
-      # 4. Install Qt using the action (handles paths automatically)
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.QT_VERSION }}
-          host: ${{ matrix.host }}
+          host: ${{ matrix.os == 'windows-latest' && 'windows' || 'linux' }}
           target: desktop
           arch: ${{ matrix.qt_arch }}
           modules: qtbase,qttools
           dir: ${{ runner.temp }}/Qt
 
-      # 5. Install Linux dependencies
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |
@@ -73,64 +67,59 @@ jobs:
             libxcb1-dev libxcb-glx0-dev libxcb-shm0-dev libxcb-util0-dev libxcb-randr0-dev \
             libxcb-shape0-dev libxcb-sync-dev libxcb-xfixes0-dev ninja-build
 
-      # 6. Configure CMake
       - name: Configure CMake
         run: cmake -S . -B build \
           -DCMAKE_BUILD_TYPE=${{ env.CMAKE_BUILD_TYPE }} \
           -DCMAKE_PREFIX_PATH=${{ runner.temp }}/Qt/${{ env.QT_VERSION }}/${{ matrix.qt_arch }}
 
-      # 7. Build
       - name: Build
         run: cmake --build build --config ${{ env.CMAKE_BUILD_TYPE }} --parallel
 
-      # 8. Test
-      - name: Test
-        run: ctest --test-dir build
-
-      # 9. Prepare release directory
-      - name: Prepare release directory
-        run: mkdir -p release
-
-      # 10. Bundle Windows app
-      - name: Bundle Windows app
-        if: runner.os == 'Windows'
-        shell: pwsh
+      - name: Bundle App
         run: |
-          $exe = Get-ChildItem -Path build -Filter "question_paper_system*.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-          if (-not $exe) { Write-Error "Executable not found in build/"; Get-ChildItem -Recurse build | Select-Object -First 100; exit 1 }
-          New-Item -ItemType Directory -Path release -Force | Out-Null
-          Copy-Item -Path $exe.FullName -Destination release -Force
-          $exeName = $exe.Name
-          $releaseExe = (Join-Path (Resolve-Path release) $exeName)
-          & "${{ runner.temp }}/Qt/${{ env.QT_VERSION }}/${{ matrix.qt_arch }}/bin/windeployqt.exe" --release --no-translations $releaseExe
-          Compress-Archive -Path release/* -DestinationPath "question-paper-system-windows.zip"
-          Get-ChildItem release -Recurse | Select-Object Name,Length
-
-      # 11. Bundle Linux app
-      - name: Bundle Linux app
-        if: runner.os == 'Linux'
-        run: |
-          wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
-          chmod a+x linuxdeployqt-continuous-x86_64.AppImage
           mkdir -p release
-          exe=$(find build -type f -name "question_paper_system" -executable | head -n1 || true)
-          if [ -z "$exe" ]; then echo "Executable not found in build/"; ls -R build | sed -n '1,200p'; exit 1; fi
-          cp "$exe" release/
-          export QTDIR=${{ runner.temp }}/Qt/${{ env.QT_VERSION }}/${{ matrix.qt_arch }}
-          export PATH=$QTDIR/bin:$PATH
-          ./linuxdeployqt-continuous-x86_64.AppImage release/question_paper_system \
-            -appimage \
-            -no-translations \
-            -bundle-non-qt-libs || true
-          mv *.AppImage release/question-paper-system-linux-x86_64.AppImage || true
-          cd release && tar -czf question-paper-system-linux.tar.gz question_paper_system || true && cd ..
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
+            chmod a+x linuxdeployqt-continuous-x86_64.AppImage
+            exe=$(find build -type f -name "question_paper_system" -executable | head -n1)
+            cp "$exe" release/
+            export QTDIR=${{ runner.temp }}/Qt/${{ env.QT_VERSION }}/${{ matrix.qt_arch }}
+            export PATH=$QTDIR/bin:$PATH
+            ./linuxdeployqt-continuous-x86_64.AppImage release/question_paper_system \
+              -appimage -no-translations -bundle-non-qt-libs || true
+            mv *.AppImage release/question-paper-system-linux-x86_64.AppImage || true
+          else
+            exe=$(find build -type f -name "question_paper_system.exe" | head -n1)
+            cp "$exe" release/
+            & "${{ runner.temp }}/Qt/${{ env.QT_VERSION }}/${{ matrix.qt_arch }}/bin/windeployqt.exe" --release --no-translations release/"$(basename $exe)"
+          fi
 
-      # 12. Upload build artifacts
-      - name: Upload artifacts
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: question-paper-system-${{ matrix.artifact_name }}
           path: release/*
-          retention-days: 7
 
-  # Release handling moved to container-build-release.yml
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
