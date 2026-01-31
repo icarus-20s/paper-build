@@ -46,10 +46,12 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
           check-latest: true
-          # Avoid auto dependency install
-          install-dependencies: false
 
-      # 3. Install Qt using the action (handles paths automatically)
+      # 3. Upgrade pip
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      # 4. Install Qt using the action (handles paths automatically)
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
@@ -57,56 +59,40 @@ jobs:
           host: ${{ matrix.os == 'windows-latest' && 'windows' || 'linux' }}
           target: desktop
           arch: ${{ matrix.qt_arch }}
-          modules: qtcharts qtwebengine
+          modules: qttools
           dir: ${{ runner.temp }}/Qt
 
-      # 4. Install dependencies (Linux only)
+      # 5. Install Linux dependencies
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libgl1-mesa-dev \
-            libxkbcommon-x11-0 \
-            libxcb-icccm4 \
-            libxcb-image0 \
-            libxcb-keysyms1 \
-            libxcb-render-util0 \
-            libxcb-xinerama0 \
-            libxcb-cursor0 \
-            libfontconfig1-dev \
-            libfreetype6-dev \
-            libx11-dev \
-            libx11-xcb-dev \
-            libxext-dev \
-            libxfixes-dev \
-            libxi-dev \
-            libxrender-dev \
-            libxcb1-dev \
-            libxcb-glx0-dev \
-            libxcb-shm0-dev \
-            libxcb-util0-dev \
-            libxcb-randr0-dev \
-            libxcb-shape0-dev \
-            libxcb-sync-dev \
-            libxcb-xfixes0-dev \
-            ninja-build
+            libgl1-mesa-dev libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
+            libxcb-render-util0 libxcb-xinerama0 libxcb-cursor0 libfontconfig1-dev libfreetype6-dev \
+            libx11-dev libx11-xcb-dev libxext-dev libxfixes-dev libxi-dev libxrender-dev \
+            libxcb1-dev libxcb-glx0-dev libxcb-shm0-dev libxcb-util0-dev libxcb-randr0-dev \
+            libxcb-shape0-dev libxcb-sync-dev libxcb-xfixes0-dev ninja-build
 
-      # 5. Configure CMake
+      # 6. Configure CMake
       - name: Configure CMake
         run: cmake -S . -B build \
           -DCMAKE_BUILD_TYPE=${{ env.CMAKE_BUILD_TYPE }} \
           -DCMAKE_PREFIX_PATH=${{ runner.temp }}/Qt/${{ env.QT_VERSION }}/${{ matrix.qt_arch }}
 
-      # 6. Build
+      # 7. Build
       - name: Build
         run: cmake --build build --config ${{ env.CMAKE_BUILD_TYPE }} --parallel
 
-      # 7. Prepare release directory
+      # 8. Test
+      - name: Test
+        run: ctest --test-dir build
+
+      # 9. Prepare release directory
       - name: Prepare release directory
         run: mkdir -p release
 
-      # 8. Bundle application (Windows)
+      # 10. Bundle Windows app
       - name: Bundle Windows app
         if: runner.os == 'Windows'
         run: |
@@ -114,10 +100,12 @@ jobs:
           & "${{ runner.temp }}/Qt/${{ env.QT_VERSION }}/${{ matrix.qt_arch }}/bin/windeployqt.exe" `
             --release `
             --no-translations `
+            --no-system-d3d-compiler `
+            --no-opengl-sw `
             release/*.exe
           Compress-Archive -Path release/* -DestinationPath "question-paper-system-windows.zip"
 
-      # 9. Bundle application (Linux)
+      # 11. Bundle Linux app
       - name: Bundle Linux app
         if: runner.os == 'Linux'
         run: |
@@ -133,7 +121,7 @@ jobs:
           mv *.AppImage release/question-paper-system-linux-x86_64.AppImage
           cd release && tar -czf question-paper-system-linux.tar.gz question_paper_system && cd ..
 
-      # 10. Upload build artifacts
+      # 12. Upload build artifacts
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
