@@ -19,17 +19,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Python
-        uses: actions/setup-python@v5
+      # Setup Python (needed for aqt)
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
-          python-version: "3.x"
+          python-version: 3.12
+
+      - name: Install aqt
+        run: python -m pip install --upgrade pip aqtinstall
 
       - name: Install Qt
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: 6.6.1
-          modules: ${{ matrix.os == 'Windows' && 'qtbase qttools' || 'qtbase' }}
-          cache: true
+        run: |
+          if [ "${{ runner.os }}" == "Linux" ]; then
+            python -m aqt install-qt linux desktop 6.6.1 --outputdir $HOME/Qt --modules qtbase
+          else
+            python -m aqt install-qt windows desktop 6.6.1 win64_msvc2019_64 --outputdir ${{ runner.temp }}/Qt --modules qtbase
+          fi
 
       - name: Configure CMake
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -41,7 +46,7 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           mkdir release
-          windeployqt build/Release/*.exe
+          ${{ runner.temp }}/Qt/6.6.1/msvc2019_64/bin/windeployqt.exe build/Release/*.exe
           copy build/Release/*.exe release/
           xcopy build/Release/*.dll release/ /y
 
