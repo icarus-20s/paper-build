@@ -23,12 +23,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-22.04
-            qt_arch: gcc_64
-            artifact_name: Linux
-          - os: windows-latest
-            qt_arch: win64_msvc2019_64
-            artifact_name: Windows
+              - os: ubuntu-22.04
+                qt_arch: gcc_64
+                host: linux
+                artifact_name: Linux
+              - os: windows-latest
+                qt_arch: win64_msvc2019_64
+                host: windows
+                artifact_name: Windows
 
     runs-on: ${{ matrix.os }}
 
@@ -44,7 +46,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
           check-latest: true
 
       # 3. Upgrade pip
@@ -56,10 +57,10 @@ jobs:
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.QT_VERSION }}
-          host: ${{ matrix.os == 'windows-latest' && 'windows' || 'linux' }}
+          host: ${{ matrix.host }}
           target: desktop
           arch: ${{ matrix.qt_arch }}
-          modules: qttools
+          modules: qtbase qttools
           dir: ${{ runner.temp }}/Qt
 
       # 5. Install Linux dependencies
@@ -95,15 +96,17 @@ jobs:
       # 10. Bundle Windows app
       - name: Bundle Windows app
         if: runner.os == 'Windows'
+        shell: pwsh
         run: |
-          Copy-Item -Path "build/Release/*.exe" -Destination "release/" -Force
-          & "${{ runner.temp }}/Qt/${{ env.QT_VERSION }}/${{ matrix.qt_arch }}/bin/windeployqt.exe" `
-            --release `
-            --no-translations `
-            --no-system-d3d-compiler `
-            --no-opengl-sw `
-            release/*.exe
+          $exe = Get-ChildItem -Path build -Filter "question_paper_system*.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $exe) { Write-Error "Executable not found in build/"; Get-ChildItem -Recurse build | Select-Object -First 100; exit 1 }
+          New-Item -ItemType Directory -Path release -Force | Out-Null
+          Copy-Item -Path $exe.FullName -Destination release -Force
+          $exeName = $exe.Name
+          $releaseExe = (Join-Path (Resolve-Path release) $exeName)
+          & "${{ runner.temp }}/Qt/${{ env.QT_VERSION }}/${{ matrix.qt_arch }}/bin/windeployqt.exe" --release --no-translations $releaseExe
           Compress-Archive -Path release/* -DestinationPath "question-paper-system-windows.zip"
+          Get-ChildItem release -Recurse | Select-Object Name,Length
 
       # 11. Bundle Linux app
       - name: Bundle Linux app
@@ -111,15 +114,18 @@ jobs:
         run: |
           wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
           chmod a+x linuxdeployqt-continuous-x86_64.AppImage
-          cp build/bin/question_paper_system release/
+          mkdir -p release
+          exe=$(find build -type f -name "question_paper_system" -executable | head -n1 || true)
+          if [ -z "$exe" ]; then echo "Executable not found in build/"; ls -R build | sed -n '1,200p'; exit 1; fi
+          cp "$exe" release/
           export QTDIR=${{ runner.temp }}/Qt/${{ env.QT_VERSION }}/${{ matrix.qt_arch }}
           export PATH=$QTDIR/bin:$PATH
           ./linuxdeployqt-continuous-x86_64.AppImage release/question_paper_system \
             -appimage \
             -no-translations \
             -bundle-non-qt-libs || true
-          mv *.AppImage release/question-paper-system-linux-x86_64.AppImage
-          cd release && tar -czf question-paper-system-linux.tar.gz question_paper_system && cd ..
+          mv *.AppImage release/question-paper-system-linux-x86_64.AppImage || true
+          cd release && tar -czf question-paper-system-linux.tar.gz question_paper_system || true && cd ..
 
       # 12. Upload build artifacts
       - name: Upload artifacts
