@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 env:
-  QT_VERSION: 6.5.3
+  QT_VERSION: 6.6.1       # You can change to any version from your list
   CMAKE_BUILD_TYPE: Release
 
 jobs:
@@ -28,7 +28,7 @@ jobs:
           - os: windows-latest
             qt_arch: win64_msvc2019_64
             artifact_name: Windows
-    
+
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -43,30 +43,33 @@ jobs:
           python-version: '3.12'
           cache: 'pip'
 
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      # --------------------------
+      # Install aqtinstall
+      # --------------------------
       - name: Install aqtinstall
-        run: |
-          python -m pip install --upgrade pip
-          pip install aqtinstall
+        run: pip install aqtinstall
 
-      - name: Cache Qt
-        id: cache-qt
-        uses: actions/cache@v4
-        with:
-          path: ${{ runner.temp }}/Qt
-          key: ${{ runner.os }}-Qt-${{ env.QT_VERSION }}-${{ matrix.qt_arch }}
-
+      # --------------------------
+      # Install Qt (cross-platform using aqt)
+      # --------------------------
       - name: Install Qt (Linux)
-        if: runner.os == 'Linux' && steps.cache-qt.outputs.cache-hit != 'true'
+        if: runner.os == 'Linux'
         run: |
           python -m aqt install-qt linux desktop ${{ env.QT_VERSION }} ${{ matrix.qt_arch }} \
             --outputdir ${{ runner.temp }}/Qt
 
       - name: Install Qt (Windows)
-        if: runner.os == 'Windows' && steps.cache-qt.outputs.cache-hit != 'true'
+        if: runner.os == 'Windows'
         run: |
           python -m aqt install-qt windows desktop ${{ env.QT_VERSION }} ${{ matrix.qt_arch }} `
             --outputdir ${{ runner.temp }}/Qt
 
+      # --------------------------
+      # Setup Qt Environment
+      # --------------------------
       - name: Setup Qt environment (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -79,36 +82,22 @@ jobs:
           echo "CMAKE_PREFIX_PATH=${{ runner.temp }}/Qt/${{ env.QT_VERSION }}/${{ matrix.qt_arch }}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           echo "${{ runner.temp }}/Qt/${{ env.QT_VERSION }}/${{ matrix.qt_arch }}/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
+      # --------------------------
+      # Install Linux dependencies
+      # --------------------------
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            libgl1-mesa-dev \
-            libxkbcommon-x11-0 \
-            libxcb-icccm4 \
-            libxcb-image0 \
-            libxcb-keysyms1 \
-            libxcb-render-util0 \
-            libxcb-xinerama0 \
-            libxcb-cursor0 \
-            libfontconfig1-dev \
-            libfreetype6-dev \
-            libx11-dev \
-            libx11-xcb-dev \
-            libxext-dev \
-            libxfixes-dev \
-            libxi-dev \
-            libxrender-dev \
-            libxcb1-dev \
-            libxcb-glx0-dev \
-            libxcb-shm0-dev \
-            libxcb-util0-dev \
-            libxcb-randr0-dev \
-            libxcb-shape0-dev \
-            libxcb-sync-dev \
-            libxcb-xfixes0-dev
+          sudo apt-get install -y libgl1-mesa-dev libxkbcommon-x11-0 libxcb-icccm4 \
+          libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-xinerama0 libxcb-cursor0 \
+          libfontconfig1-dev libfreetype6-dev libx11-dev libx11-xcb-dev libxext-dev libxfixes-dev \
+          libxi-dev libxrender-dev libxcb1-dev libxcb-glx0-dev libxcb-shm0-dev libxcb-util0-dev \
+          libxcb-randr0-dev libxcb-shape0-dev libxcb-sync-dev libxcb-xfixes0-dev
 
+      # --------------------------
+      # Configure and Build
+      # --------------------------
       - name: Configure CMake
         run: |
           cmake -S . -B build \
@@ -118,57 +107,41 @@ jobs:
       - name: Build
         run: cmake --build build --config ${{ env.CMAKE_BUILD_TYPE }} --parallel
 
+      # --------------------------
+      # Prepare release directory
+      # --------------------------
       - name: Prepare release directory
-        run: |
-          mkdir -p release
+        run: mkdir -p release
 
-      - name: Bundle application (Windows)
+      # --------------------------
+      # Bundle Windows Application
+      # --------------------------
+      - name: Bundle Windows App
         if: runner.os == 'Windows'
         run: |
-          # Copy executable
           Copy-Item -Path "build/Release/*.exe" -Destination "release/" -Force
-          
-          # Deploy Qt dependencies
-          & "${{ runner.temp }}/Qt/${{ env.QT_VERSION }}/${{ matrix.qt_arch }}/bin/windeployqt.exe" `
-            --release `
-            --no-translations `
-            --no-system-d3d-compiler `
-            --no-opengl-sw `
-            release/*.exe
-          
-          # Create ZIP archive
+          & "${{ runner.temp }}/Qt/${{ env.QT_VERSION }}/${{ matrix.qt_arch }}/bin/windeployqt.exe" release/*.exe `
+            --release --no-translations --no-system-d3d-compiler --no-opengl-sw
           Compress-Archive -Path release/* -DestinationPath "question-paper-system-windows.zip"
 
-      - name: Bundle application (Linux)
+      # --------------------------
+      # Bundle Linux Application
+      # --------------------------
+      - name: Bundle Linux App
         if: runner.os == 'Linux'
         run: |
-          # Download linuxdeployqt
           wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
           chmod a+x linuxdeployqt-continuous-x86_64.AppImage
-          
-          # Copy executable to release directory
           cp build/bin/question_paper_system release/
-          
-          # Create AppImage
-          export QTDIR=${{ runner.temp }}/Qt/${{ env.QT_VERSION }}/${{ matrix.qt_arch }}
-          export PATH=$QTDIR/bin:$PATH
-          export LD_LIBRARY_PATH=$QTDIR/lib:$LD_LIBRARY_PATH
-          
-          ./linuxdeployqt-continuous-x86_64.AppImage build/bin/question_paper_system \
-            -appimage \
-            -no-translations \
-            -bundle-non-qt-libs || true
-          
-          # Move AppImage to release directory
-          if [ -f *.AppImage ]; then
-            mv *.AppImage release/question-paper-system-linux-x86_64.AppImage
-          fi
-          
-          # Also create a tarball with the executable and libraries
-          cd release
-          tar -czf question-paper-system-linux.tar.gz question_paper_system
-          cd ..
+          export PATH=${{ runner.temp }}/Qt/${{ env.QT_VERSION }}/${{ matrix.qt_arch }}/bin:$PATH
+          export LD_LIBRARY_PATH=${{ runner.temp }}/Qt/${{ env.QT_VERSION }}/${{ matrix.qt_arch }}/lib:$LD_LIBRARY_PATH
+          ./linuxdeployqt-continuous-x86_64.AppImage build/bin/question_paper_system -appimage -no-translations -bundle-non-qt-libs || true
+          if [ -f *.AppImage ]; then mv *.AppImage release/question-paper-system-linux-x86_64.AppImage; fi
+          cd release && tar -czf question-paper-system-linux.tar.gz question_paper_system && cd ..
 
+      # --------------------------
+      # Upload Artifacts
+      # --------------------------
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -178,40 +151,3 @@ jobs:
             question-paper-system-*.zip
             question-paper-system-*.tar.gz
           retention-days: 7
-
-  release:
-    name: Create GitHub Release
-    if: startsWith(github.ref, 'refs/tags/')
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: Display structure of downloaded files
-        run: ls -R artifacts
-
-      - name: Prepare release assets
-        run: |
-          mkdir -p release-assets
-          find artifacts -type f \( -name "*.zip" -o -name "*.tar.gz" -o -name "*.AppImage" \) -exec cp {} release-assets/ \;
-          ls -lh release-assets/
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: release-assets/*
-          draft: false
-          prerelease: false
-          generate_release_notes: true
-          fail_on_unmatched_files: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
