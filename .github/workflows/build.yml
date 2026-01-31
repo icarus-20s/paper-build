@@ -3,7 +3,7 @@ name: Build & Release (Qt + CMake)
 on:
   push:
     tags:
-      - "v*.*.*"   
+      - "v*.*.*" 
   pull_request:
   workflow_dispatch:
 
@@ -19,9 +19,6 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # --------------------
-    # Install Qt
-    # --------------------
     - name: Install Qt
       uses: jurplel/install-qt-action@v4
       with:
@@ -29,31 +26,23 @@ jobs:
         modules: qtbase qttools
         cache: true
 
-    # --------------------
-    # Configure CMake
-    # --------------------
-    - name: Configure
+    - name: Configure CMake
       run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
-    # --------------------
-    # Build
-    # --------------------
+    - name: Build
+      run: cmake --build build --config Release
     - name: Build
       run: cmake --build build --config Release
 
-    # --------------------
-    # Bundle Qt (Windows)
-    # --------------------
     - name: Bundle Qt (Windows)
       if: runner.os == 'Windows'
       run: |
-        windeployqt build/Release/*.exe
         mkdir release
-        Compress-Archive -Path build/Release/* -DestinationPath release/app.zip
+        windeployqt build/Release/*.exe
+        # Copy .exe and DLLs to release folder
+        copy build/Release/*.exe release/
+        xcopy build/Release/*.dll release/ /y
 
-    # --------------------
-    # Bundle Qt (Linux)
-    # --------------------
     - name: Bundle Qt (Linux)
       if: runner.os == 'Linux'
       run: |
@@ -62,11 +51,7 @@ jobs:
         mkdir -p release
         ./linuxdeployqt-continuous-x86_64.AppImage build/bin/question_paper_system -appimage -no-translations
         mv *.AppImage release/question_paper_system.AppImage
-        cp build/bin/question_paper_system release/
 
-    # --------------------
-    # Upload artifacts
-    # --------------------
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
