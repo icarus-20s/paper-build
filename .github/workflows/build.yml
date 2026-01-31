@@ -1,4 +1,4 @@
-name: Build & Release (Qt + CMake)
+name: Build & Release (Qt + CMake for Windows & Linux)
 
 on:
   push:
