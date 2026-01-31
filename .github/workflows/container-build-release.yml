@@ -1,0 +1,68 @@
+name: Container Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build -t qp-builder:latest .
+
+      - name: Extract build artifacts from image
+        run: |
+          mkdir -p artifacts
+          cid=$(docker create qp-builder:latest)
+          echo "created container $cid"
+          docker cp $cid:/src/build/bin artifacts/ || true
+          docker cp $cid:/src/release artifacts/ || true
+          docker rm $cid || true
+
+      - name: Show extracted files
+        run: |
+          ls -la artifacts || true
+          find artifacts -type f -maxdepth 4 -print || true
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-container
+          path: artifacts/*
+          retention-days: 7
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

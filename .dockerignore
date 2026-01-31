@@ -1,0 +1,15 @@
+build/
+.git/
+.github/
+*.swp
+__pycache__/
+.vscode/
+*.o
+*.obj
+*.exe
+*.AppImage
+*.zip
+dist/
+release/
+/.cache
+/.idea
